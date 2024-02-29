@@ -1,0 +1,223 @@
+---
+title: "Homework 5- Statistical Thinking"
+author: "Arjun Kumar"
+date: "2024-02-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Github Link#
+
+https://github.com/ArjunKumar2004/Statistical_Thinking_HW5
+
+
+## **Question 1** ##
+
+Null hypothesis: At Iron Bank, the percentage of trades that are flagged is equivalent to the 2.4% baseline rate.
+
+Test statistic: The percentage of deals that were flagged out of all trades.
+
+Plot of the test statistic's probability distribution, assuming the null hypothesis is correct:
+
+```{r echo = FALSE}
+library(ggplot2)
+
+total_trades <- 2021
+baseline_rate <- 0.024
+observed_flagged <- 70
+num_simulations <- 100000
+
+simulated_flagged <- rbinom(num_simulations, total_trades, baseline_rate)
+simulated_proportions <- simulated_flagged / total_trades
+
+simulated_data <- data.frame(Proportion_Flagged = simulated_proportions)
+
+ggplot(simulated_data, aes(x = Proportion_Flagged)) +
+  geom_histogram(binwidth = 0.0009, fill = "skyblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = observed_flagged / total_trades, color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Flagged Trades Proportion", y = "Density", title = "Distribution of Flagged Trades Proportions") +
+  theme_classic()
+
+observed_proportion <- observed_flagged / total_trades
+p_value <- mean(simulated_proportions >= observed_proportion)
+```
+
+p-value: `r p_value`
+
+Conclusion: The computed p-value is less than 0.05, indicating a significant difference between the observed percentage of flagged trades and Iron Bank's baseline rate of 2.4%. As a result, we find compelling evidence to support the conclusion that Iron Bank's percentage of flagged trades differs from the baseline rate that is predicted, rejecting the null hypothesis. The identification of possible abnormalities or irregularities in Iron Bank's trading activities may be affected by this discovery.
+
+
+## **Question 2** ##
+
+Null Hypothesis: Gourmet Bites' percentage of health code breaches is equivalent to the 3% average baseline rate for the entire city.
+
+Test statistic: The percentage of health code breaches among all Gourmet Bites inspections is the test statistic that is used.
+
+Plot of the test statistic's probability distribution, assuming the null hypothesis is correct:
+
+```{r echo = FALSE}
+total_inspections <- 1500
+gourmet_bites_inspections <- 50
+gourmet_bites_violations <- 8
+baseline_violation_rate <- 0.03
+num_simulations <- 100000
+
+simulated_violations <- rbinom(num_simulations, gourmet_bites_inspections, baseline_violation_rate)
+simulated_proportions <- simulated_violations / gourmet_bites_inspections
+
+simulated_data <- data.frame(Simulated_Proportion = simulated_proportions)
+
+ggplot(simulated_data, aes(x = Simulated_Proportion)) +
+  geom_histogram(binwidth = 0.005, fill = "skyblue", color = "black", alpha = 0.7) +
+  geom_vline(xintercept = gourmet_bites_violations / gourmet_bites_inspections, color = "red", linetype = "dashed", size = 1) +
+  labs(x = "Violations Proportion", y = "Density", title = "Violation Proportions at Gourmet Bites Probability Distribution") +
+  theme_minimal()
+
+p_value2 <- mean(simulated_proportions >= gourmet_bites_violations / gourmet_bites_inspections)
+```
+
+p-value: `r p_value2`
+
+Conclusion: The observed percentage of health code violations at Gourmet Bites appears to be significantly different from the baseline rate of 3% expected for the entire city, as indicated by the p-value of less than 0.05. Consequently, we reject the null hypothesis and come to the conclusion that there is substantial evidence indicating a deviation from the expected citywide average in the percentage of health code violations at Gourmet Bites. This conclusion calls for additional research since it might point to possible problems with Gourmet Bites' adherence to health rules.
+
+## **Problem 3** ##
+
+
+**Part A**
+
+```{r echo = FALSE}
+sentences <- readLines("brown_sentences.txt")
+sentences_clean <- gsub("[^a-zA-Z]", "", sentences)
+sentences_clean <- toupper(sentences_clean)
+
+count_letters <- function(sentence) {
+  letters <- strsplit(sentence, "")[[1]]
+  letter_count <- table(letters)
+  letter_count <- as.numeric(letter_count[LETTERS])
+  return(letter_count)
+}
+
+observed_counts <- lapply(sentences_clean, count_letters)
+
+letter_freq <- read.csv("letter_frequencies.csv")
+
+expected_counts <- lapply(observed_counts, function(count) {
+  n <- sum(count)
+  expected <- n * letter_freq$Frequency
+  return(expected)
+})
+
+chi_squared_values <- sapply(1:length(sentences_clean), function(i) {
+  observed <- observed_counts[[i]]
+  expected <- expected_counts[[i]]
+  chi_squared <- sum((observed - expected)^2 / expected)
+  return(chi_squared)
+})
+
+null_distribution <- chi_squared_values
+null_distribution_df <- data.frame(ChiSquared = null_distribution)
+
+library(tidyverse)
+
+
+calculate_chi_squared <- function(observed_counts, expected_counts) {
+  sum((observed_counts - expected_counts)^2 / expected_counts)
+}
+
+caesar_cipher_decode <- function(text, shift) {
+  alphabet <- paste0(LETTERS, collapse = "")
+  shifted_alphabet <- paste0(substring(alphabet, shift + 1, 26), substring(alphabet, 1, shift))
+  chartr(alphabet, shifted_alphabet, text)
+}
+
+letter_frequencies <- read.csv("letter_frequencies.csv")
+
+
+chi_squared_values <- numeric()
+
+for (sentence in sentences) {
+
+  clean_sentence <- gsub("[^A-Za-z]", "", sentence)
+  clean_sentence <- toupper(clean_sentence)
+  
+  chi_squared_shifts <- sapply(1:25, function(shift) {
+    decoded_sentence <- caesar_cipher_decode(clean_sentence, shift)
+    
+ 
+    observed_counts <- table(factor(strsplit(decoded_sentence, "")[[1]], levels = letter_frequencies$Letter))
+    
+   
+    total_letters <- sum(observed_counts)
+    expected_counts <- total_letters * letter_frequencies$Probability
+    
+    
+    calculate_chi_squared(observed_counts, expected_counts)
+  })
+  
+ 
+  chi_squared_values <- c(chi_squared_values, min(chi_squared_shifts))
+}
+
+```
+
+```{r echo = FALSE}
+df <- data.frame(chi_squared_values)
+ggplot(df, aes(x = chi_squared_values)) +
+  geom_histogram(bins = 100, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Null Distribution of Chi-Squared Values", x = "Chi-Squared Value", y = "Frequency") +
+  theme_classic()
+```
+
+**Part B**
+
+```{r echo=FALSE}
+# Define the sentences
+sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+# Define the function to calculate chi-squared
+calculate_chi_squared <- function(sentence, letter_frequencies) {
+  clean_sentence <- gsub("[^A-Za-z]", "", sentence)
+  clean_sentence <- toupper(clean_sentence)
+  observed_counts <- table(factor(strsplit(clean_sentence, "")[[1]], levels = LETTERS))
+  total_letters <- sum(observed_counts)
+  expected_counts <- total_letters * letter_frequencies$Probability
+  chi_squared <- sum((observed_counts - expected_counts)^2 / expected_counts)
+  return(chi_squared)
+}
+
+# Load the letter frequencies
+letter_frequencies <- read.csv("letter_frequencies.csv")
+
+# Initialize a tibble to store results
+LM_chi <- tibble(Sentence = sentences, `p-value` = NA)
+
+# Calculate chi-squared and p-value for each sentence
+for (i in 1:nrow(LM_chi)) {
+  chi_squared <- calculate_chi_squared(LM_chi$Sentence[i], letter_frequencies)
+  p_value <- pchisq(chi_squared, df = 25, lower.tail = FALSE)
+  LM_chi$`p-value`[i] <- round(p_value, 3)
+}
+
+# Display results using kableExtra
+library(kableExtra)
+
+LM_chi %>%
+  kable("html") %>%
+  kable_styling(full_width = FALSE)
+```
+
+Sentence 6 has the greatest deviation from the expected English distribution in terms of letter frequency distribution, with a p-value of 0.000, as determined by the p-value analysis. As a result, it is most likely Sentence 6 that an LLM with a watermarked frequency distribution produced. Based on the statistical significance of the p-values, which indicate stronger evidence against the null hypothesis that the distribution of letters is characteristic of the English language, this conclusion has been drawn. Sentence 6 in this instance has the lowest p-value, suggesting that it is more likely than the other sentences to be watermarked.
